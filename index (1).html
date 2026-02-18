@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ProCals — AI Calorie Tracker</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>" />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Fraunces:ital,wght@0,700;1,400&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f2ee; --white: #ffffff; --surface: #faf8f6; --border: #e8e3dc;
+      --accent: #ff5c35; --accent-soft: #fff0ec; --accent2: #6c63ff;
+      --green: #22c55e; --text: #1a1714; --text-mid: #6b6560; --text-muted: #b0aba5;
+      --red: #ef4444; --shadow: 0 2px 12px rgba(0,0,0,0.06); --shadow-lg: 0 8px 32px rgba(0,0,0,0.10);
+      --radius: 16px; --header-h: 64px;
+    }
+    html.dark {
+      --bg: #111210; --white: #1c1b18; --surface: #242320; --border: #2e2d29;
+      --text: #f0ede6; --text-mid: #9c9890; --text-muted: #5a5850;
+      --shadow: 0 2px 12px rgba(0,0,0,0.3); --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+      --accent-soft: rgba(255,92,53,0.12);
+    }
+    html, body { height: 100%; }
+    body { font-family: 'Sora', sans-serif; background: var(--bg); color: var(--text); transition: background 0.3s, color 0.3s; min-height: 100vh; }
+    #root { min-height: 100vh; }
+
+    /* DARK TOGGLE */
+    .dark-toggle { position: fixed; bottom: 24px; right: 24px; z-index: 999; width: 48px; height: 48px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--white); color: var(--text); font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-lg); transition: all 0.2s; }
+    .dark-toggle:hover { transform: scale(1.1); border-color: var(--accent); }
+
+    /* AUTH */
+    .auth-root { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
+    @media (max-width: 768px) { .auth-root { grid-template-columns: 1fr; } .auth-hero { display: none !important; } }
+    .auth-hero { background: linear-gradient(145deg, #ff5c35 0%, #ff8a60 50%, #ffb347 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 48px; position: relative; overflow: hidden; }
+    .auth-hero::before { content: ''; position: absolute; width: 500px; height: 500px; border-radius: 50%; background: rgba(255,255,255,0.07); top: -100px; left: -150px; }
+    .auth-hero::after { content: ''; position: absolute; width: 300px; height: 300px; border-radius: 50%; background: rgba(255,255,255,0.05); bottom: -80px; right: -80px; }
+    .auth-hero-content { position: relative; z-index: 1; text-align: center; }
+    .auth-hero-icon { font-size: 72px; margin-bottom: 24px; filter: drop-shadow(0 8px 24px rgba(0,0,0,0.2)); }
+    .auth-hero-title { font-family: 'Fraunces', serif; font-size: clamp(36px,4vw,52px); font-weight: 700; color: white; line-height: 1.1; margin-bottom: 16px; }
+    .auth-hero-title em { font-style: italic; opacity: 0.9; }
+    .auth-hero-sub { font-size: 16px; color: rgba(255,255,255,0.8); line-height: 1.6; max-width: 320px; margin: 0 auto; }
+    .auth-hero-features { margin-top: 40px; display: flex; flex-direction: column; gap: 14px; text-align: left; }
+    .auth-hero-feature { display: flex; align-items: center; gap: 12px; color: white; font-size: 14px; font-weight: 500; }
+    .auth-hero-feat-icon { width: 36px; height: 36px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .auth-panel { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: clamp(32px,5vw,80px) clamp(24px,5vw,80px); background: var(--bg); overflow-y: auto; min-height: 100vh; }
+    .auth-panel-inner { width: 100%; max-width: 420px; }
+    .auth-mobile-logo { display: none; text-align: center; margin-bottom: 32px; }
+    @media (max-width: 768px) { .auth-mobile-logo { display: block; } }
+    .auth-mobile-logo-icon { font-size: 48px; display: block; margin-bottom: 8px; }
+    .auth-mobile-logo-text { font-family: 'Fraunces', serif; font-size: 28px; font-weight: 700; color: var(--text); }
+    .auth-mobile-logo-text em { font-style: italic; color: var(--accent); }
+    .auth-heading { font-family: 'Fraunces', serif; font-size: clamp(24px,3vw,32px); font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .auth-subheading { font-size: 14px; color: var(--text-muted); margin-bottom: 32px; }
+    .auth-tabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; padding: 4px; margin-bottom: 28px; }
+    .auth-tab { padding: 11px; border: none; background: none; border-radius: 9px; font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: all 0.2s; }
+    .auth-tab.active { background: var(--white); color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .auth-google-btn { width: 100%; padding: 14px 20px; background: var(--white); border: 1.5px solid var(--border); border-radius: 12px; font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s; margin-bottom: 20px; box-shadow: var(--shadow); }
+    .auth-google-btn:hover:not(:disabled) { border-color: #4285F4; transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+    .auth-google-btn:disabled { opacity: 0.5; cursor: wait; }
+    .auth-divider { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+    .auth-divider-line { flex: 1; height: 1px; background: var(--border); }
+    .auth-divider-text { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+    .auth-field { margin-bottom: 16px; }
+    .auth-label { display: block; font-size: 12px; font-weight: 700; color: var(--text-mid); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 7px; }
+    .auth-input { width: 100%; padding: 14px 16px; background: var(--white); border: 1.5px solid var(--border); border-radius: 12px; font-family: 'Sora', sans-serif; font-size: 14px; color: var(--text); outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+    .auth-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255,92,53,0.1); }
+    .auth-input::placeholder { color: var(--text-muted); }
+    .auth-input.err { border-color: var(--red); }
+    .auth-forgot { text-align: right; font-size: 12px; font-weight: 600; color: var(--accent); cursor: pointer; margin-top: -8px; margin-bottom: 16px; }
+    .auth-error { background: rgba(239,68,68,0.08); border: 1.5px solid var(--red); color: var(--red); padding: 12px 16px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; line-height: 1.5; }
+    .auth-submit-btn { width: 100%; padding: 16px; background: var(--accent); color: white; border: none; border-radius: 12px; font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 16px rgba(255,92,53,0.3); position: relative; overflow: hidden; }
+    .auth-submit-btn:hover:not(:disabled) { background: #e84d29; transform: translateY(-1px); }
+    .auth-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .auth-submit-btn.loading::before { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent); animation: shimmer 1.2s infinite; }
+    @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+    .auth-footer { text-align: center; font-size: 13px; color: var(--text-muted); margin-top: 20px; line-height: 1.7; }
+    .auth-footer a { color: var(--accent); font-weight: 600; cursor: pointer; }
+
+    /* APP SHELL */
+    .app-shell { display: grid; grid-template-rows: var(--header-h) 1fr; min-height: 100vh; }
+    .topbar { height: var(--header-h); background: var(--white); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 clamp(16px,3vw,40px); gap: 16px; position: sticky; top: 0; z-index: 50; box-shadow: var(--shadow); }
+    .topbar-logo { display: flex; align-items: center; gap: 10px; }
+    .topbar-logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .topbar-logo-text { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 700; color: var(--text); }
+    .topbar-logo-text em { font-style: italic; color: var(--accent); }
+    .topbar-spacer { flex: 1; }
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+    .topbar-date { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+    @media (max-width: 640px) { .topbar-date { display: none; } }
+    .reset-btn { background: none; border: 1.5px solid var(--border); color: var(--text-mid); font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 500; padding: 7px 16px; border-radius: 20px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+    .reset-btn:hover { border-color: var(--red); color: var(--red); background: rgba(239,68,68,0.05); }
+    .user-pill { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 24px; padding: 5px 14px 5px 6px; cursor: pointer; transition: all 0.2s; }
+    .user-pill:hover { border-color: var(--accent); }
+    .user-avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #ff8660); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: white; overflow: hidden; flex-shrink: 0; }
+    .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .user-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .premium-badge { background: linear-gradient(135deg, #ff5c35, #ff8660); color: white; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+
+    /* APP BODY */
+    .app-body { display: grid; grid-template-columns: clamp(280px, 30vw, 380px) 1fr; overflow: hidden; height: calc(100vh - var(--header-h)); }
+    @media (max-width: 900px) { .app-body { grid-template-columns: 1fr; height: auto; overflow: visible; } .sidebar { border-right: none !important; border-bottom: 1px solid var(--border); max-height: none !important; overflow: visible !important; } .main-panel { max-height: none !important; overflow: visible !important; } }
+
+    /* SIDEBAR */
+    .sidebar { background: var(--white); border-right: 1px solid var(--border); padding: clamp(20px,2.5vw,32px); overflow-y: auto; max-height: calc(100vh - var(--header-h)); display: flex; flex-direction: column; gap: 20px; }
+    .ring-section { background: var(--surface); border-radius: var(--radius); padding: 22px; display: flex; align-items: center; gap: 18px; border: 1px solid var(--border); }
+    .ring-wrap { position: relative; width: 100px; height: 100px; flex-shrink: 0; }
+    .ring-wrap svg { transform: rotate(-90deg); }
+    .ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
+    .ring-num { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 700; color: var(--text); }
+    .ring-sub { font-size: 9px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 3px; }
+    .cal-info { flex: 1; min-width: 0; }
+    .cal-info-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .cal-info-num { font-family: 'Fraunces', serif; font-size: 36px; font-weight: 700; line-height: 1; color: var(--text); margin-bottom: 6px; }
+    .cal-info-num span { font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 400; color: var(--text-muted); }
+    .cal-badge { display: inline-flex; align-items: center; gap: 5px; background: var(--accent-soft); color: var(--accent); font-size: 11px; font-weight: 600; padding: 4px 11px; border-radius: 20px; }
+    .cal-badge.over { background: rgba(239,68,68,0.1); color: var(--red); }
+    .macro-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .macro-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 10px; text-align: center; }
+    .macro-val { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 700; line-height: 1; color: var(--text); }
+    .macro-val span { font-size: 11px; font-weight: 400; color: var(--text-muted); font-family: 'Sora', sans-serif; }
+    .macro-lbl { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+    .macro-card.protein .macro-val { color: #f97316; }
+    .macro-card.carbs .macro-val { color: var(--accent2); }
+    .macro-card.fat .macro-val { color: var(--green); }
+    .goal-row { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; }
+    .goal-lbl { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; flex: 1; }
+    .goal-input { background: var(--white); border: 1.5px solid var(--border); color: var(--text); font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700; padding: 8px 12px; border-radius: 10px; width: 90px; text-align: center; outline: none; transition: border-color 0.2s; }
+    .goal-input:focus { border-color: var(--accent); }
+    .goal-kcal-lbl { font-size: 12px; color: var(--text-muted); }
+    .log-panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .log-panel-title { font-size: 14px; font-weight: 700; color: var(--text); }
+    .log-count-badge { background: var(--accent-soft); color: var(--accent); font-size: 11px; font-weight: 700; padding: 3px 12px; border-radius: 20px; }
+    .log-empty { text-align: center; padding: 32px 20px; color: var(--text-muted); font-size: 13px; background: var(--surface); border-radius: 14px; border: 1.5px dashed var(--border); line-height: 1.7; }
+    .log-item { display: flex; gap: 12px; align-items: center; padding: 12px 14px; background: var(--surface); border-radius: 14px; margin-bottom: 8px; border: 1px solid var(--border); animation: slide-in 0.25s ease; }
+    @keyframes slide-in { from { opacity:0; transform: translateY(-6px); } to { opacity:1; transform: translateY(0); } }
+    .log-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 10px; flex-shrink: 0; }
+    .log-info { flex: 1; min-width: 0; }
+    .log-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; color: var(--text); }
+    .log-macros { display: flex; gap: 8px; font-size: 11px; color: var(--text-muted); flex-wrap: wrap; }
+    .log-macros .kcal { font-weight: 700; color: var(--accent); }
+    .log-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
+    .log-time { font-size: 10px; font-weight: 500; color: var(--text-muted); }
+    .log-delete { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.15s; }
+    .log-delete:hover { background: rgba(239,68,68,0.1); color: var(--red); }
+
+    /* MAIN PANEL */
+    .main-panel { padding: clamp(20px,3vw,40px); overflow-y: auto; max-height: calc(100vh - var(--header-h)); display: flex; flex-direction: column; gap: 16px; background: var(--bg); }
+    .upload-card { background: var(--white); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border); }
+    .capture-zone { position: relative; height: clamp(180px,22vh,280px); display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; background: var(--surface); border-bottom: 1.5px dashed var(--border); }
+    .capture-zone.has-image { border-bottom-style: solid; border-color: var(--accent); }
+    .capture-zone:hover:not(.has-image) { background: var(--accent-soft); border-color: var(--accent); }
+    .capture-zone img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
+    .capture-overlay { position: absolute; inset: 0; background: rgba(255,92,53,0.75); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; opacity: 0; transition: opacity 0.2s; backdrop-filter: blur(2px); }
+    .capture-zone.has-image:hover .capture-overlay { opacity: 1; }
+    .capture-overlay span { color: white; font-size: 13px; font-weight: 600; }
+    .upload-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .upload-icon-wrap { width: 60px; height: 60px; background: var(--accent-soft); border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 28px; }
+    .upload-text { font-size: 14px; font-weight: 600; color: var(--text); }
+    .upload-sub { font-size: 12px; color: var(--text-muted); }
+    .upload-counter { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--surface); border-top: 1px solid var(--border); }
+    .counter-dots { display: flex; gap: 7px; }
+    .counter-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--border); transition: background 0.3s; }
+    .counter-dot.used { background: var(--accent); }
+    .counter-label { font-size: 12px; font-weight: 500; color: var(--text-muted); }
+    .counter-label strong { color: var(--text-mid); }
+    .card-actions { display: grid; grid-template-columns: 1fr 1fr; }
+    .action-btn { padding: 14px 10px; background: none; border: none; font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 600; color: var(--text-mid); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; transition: all 0.15s; border-top: 1.5px solid var(--border); }
+    .action-btn:first-child { border-right: 1px solid var(--border); }
+    .action-btn:hover { background: var(--surface); color: var(--text); }
+    .analyze-btn { width: 100%; padding: 17px; background: var(--accent); color: white; border: none; border-radius: var(--radius); font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden; box-shadow: 0 4px 16px rgba(255,92,53,0.3); }
+    .analyze-btn:hover:not(:disabled) { background: #e84d29; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(255,92,53,0.4); }
+    .analyze-btn:disabled { background: var(--border); color: var(--text-muted); cursor: not-allowed; box-shadow: none; transform: none; }
+    .analyze-btn.loading { background: #ff7a5c; cursor: wait; }
+    .analyze-btn.loading::before { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg,transparent,rgba(255,255,255,0.25),transparent); animation: shimmer 1.2s infinite; }
+    .limit-banner { background: linear-gradient(135deg, #1a1714, #2d2520); border-radius: var(--radius); padding: 18px 20px; display: flex; align-items: center; gap: 14px; box-shadow: var(--shadow-lg); }
+    .limit-icon { font-size: 28px; flex-shrink: 0; }
+    .limit-text { flex: 1; }
+    .limit-title { font-size: 14px; font-weight: 700; color: white; margin-bottom: 3px; }
+    .limit-sub { font-size: 11px; color: rgba(255,255,255,0.55); line-height: 1.4; }
+    .upgrade-btn-inline { background: var(--accent); color: white; border: none; border-radius: 10px; font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 700; padding: 9px 16px; cursor: pointer; white-space: nowrap; transition: all 0.2s; flex-shrink: 0; }
+    .upgrade-btn-inline:hover { background: #e84d29; }
+    .result-card { background: var(--white); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-lg); border: 2px solid var(--accent); animation: pop-in 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+    @keyframes pop-in { from { opacity:0; transform: scale(0.96) translateY(10px); } to { opacity:1; transform: scale(1) translateY(0); } }
+    .result-hero { background: linear-gradient(135deg, var(--accent), #ff8660); padding: 20px 24px; display: flex; justify-content: space-between; align-items: flex-start; }
+    .result-name { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 700; color: white; flex: 1; padding-right: 16px; line-height: 1.2; }
+    .result-cals-block { text-align: right; flex-shrink: 0; }
+    .result-cals { font-family: 'Fraunces', serif; font-size: 42px; font-weight: 700; color: white; line-height: 1; }
+    .result-cals-label { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.75); text-transform: uppercase; letter-spacing: 1px; }
+    .result-macros { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 16px 20px; gap: 10px; }
+    .result-macro { text-align: center; padding: 12px; background: var(--surface); border-radius: 12px; }
+    .result-macro-val { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 700; color: var(--text); }
+    .result-macro-val span { font-family: 'Sora'; font-size: 12px; font-weight: 400; color: var(--text-muted); }
+    .result-macro-label { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 3px; }
+    .result-notes { font-size: 13px; color: var(--text-mid); line-height: 1.6; padding: 0 20px 16px; }
+    .add-log-btn { width: calc(100% - 40px); margin: 0 20px 20px; padding: 14px; background: var(--accent-soft); border: 2px solid var(--accent); color: var(--accent); font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700; border-radius: 12px; cursor: pointer; transition: all 0.2s; }
+    .add-log-btn:hover { background: var(--accent); color: white; }
+    .error-msg { background: rgba(239,68,68,0.08); border: 1.5px solid var(--red); color: var(--red); padding: 13px 16px; border-radius: 12px; font-size: 13px; line-height: 1.5; }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: flex-end; justify-content: center; animation: fade-in 0.2s ease; }
+    @keyframes fade-in { from { opacity:0; } to { opacity:1; } }
+    .modal { background: var(--white); border-radius: 28px 28px 0 0; padding: 32px 28px 44px; width: 100%; max-width: 480px; animation: slide-up 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+    @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 4px; margin: 0 auto 28px; }
+    .modal-badge { display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #ff5c35, #ff8660); color: white; font-size: 11px; font-weight: 700; padding: 5px 14px; border-radius: 20px; margin-bottom: 12px; text-transform: uppercase; }
+    .modal-title { font-family: 'Fraunces', serif; font-size: 30px; font-weight: 700; color: var(--text); line-height: 1.2; margin-bottom: 8px; }
+    .modal-sub { font-size: 14px; color: var(--text-mid); line-height: 1.5; margin-bottom: 24px; }
+    .modal-features { background: var(--surface); border-radius: 16px; padding: 16px; margin-bottom: 24px; border: 1px solid var(--border); }
+    .modal-feature { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 14px; font-weight: 500; color: var(--text); }
+    .modal-feature:last-child { border-bottom: none; }
+    .feature-check { width: 24px; height: 24px; background: var(--accent-soft); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+    .modal-price { text-align: center; margin-bottom: 20px; }
+    .price-amount { font-family: 'Fraunces', serif; font-size: 48px; font-weight: 700; color: var(--text); line-height: 1; }
+    .price-period { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+    .modal-cta { width: 100%; padding: 18px; background: linear-gradient(135deg, var(--accent), #ff8660); color: white; border: none; border-radius: 14px; font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 6px 20px rgba(255,92,53,0.35); margin-bottom: 12px; }
+    .modal-cta:hover { transform: translateY(-1px); }
+    .modal-dismiss { width: 100%; padding: 14px; background: none; border: none; font-family: 'Sora', sans-serif; font-size: 14px; color: var(--text-muted); cursor: pointer; }
+    input[type="file"] { display: none; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const { useState, useEffect, useRef } = React;
+  const GOOGLE_CLIENT_ID = "577211690181-gq3r3bvabk6akognjo6vd7girco2dg10.apps.googleusercontent.com";
+  const DAILY_GOAL = 2000;
+  const FREE_LIMIT = 3;
+
+  // In-memory user store (email -> {name, password})
+  const registeredUsers = new Map();
+
+  function DarkToggle() {
+    const [dark, setDark] = useState(false);
+    const toggle = () => {
+      const next = !dark;
+      setDark(next);
+      document.documentElement.classList.toggle('dark', next);
+    };
+    return <button className="dark-toggle" onClick={toggle} title={dark ? "Light mode" : "Dark mode"}>{dark ? "☀️" : "🌙"}</button>;
+  }
+
+  function AuthScreen({ onAuth }) {
+    const [tab, setTab] = useState("signup");
+    const [name, setName] = useState(""); const [email, setEmail] = useState("");
+    const [password, setPassword] = useState(""); const [confirm, setConfirm] = useState("");
+    const [authError, setAuthError] = useState(""); const [submitting, setSubmitting] = useState(false);
+    const [gsiLoaded, setGsiLoaded] = useState(false);
+
+    useEffect(() => {
+      if (window.google?.accounts?.oauth2) { setGsiLoaded(true); return; }
+      const ex = document.getElementById("gsi-script");
+      if (ex) { ex.addEventListener("load", () => setGsiLoaded(true)); return; }
+      const s = document.createElement("script"); s.id = "gsi-script";
+      s.src = "https://accounts.google.com/gsi/client"; s.async = true; s.defer = true;
+      s.onload = () => setGsiLoaded(true); s.onerror = () => setAuthError("Could not load Google Sign-In.");
+      document.head.appendChild(s);
+    }, []);
+
+    const handleGoogle = () => {
+      if (!window.google?.accounts?.oauth2) { setAuthError("Google not ready. Please wait."); return; }
+      setAuthError("");
+      try {
+        window.google.accounts.oauth2.initTokenClient({
+          client_id: GOOGLE_CLIENT_ID, scope: "openid email profile",
+          callback: async (res) => {
+            if (res.error) { setAuthError("Google Sign-In cancelled."); return; }
+            try {
+              const r = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", { headers: { Authorization: `Bearer ${res.access_token}` } });
+              const p = await r.json();
+              onAuth({ name: p.name || p.email, email: p.email, picture: p.picture, provider: "google" });
+            } catch { setAuthError("Couldn't load Google profile. Try again."); }
+          },
+        }).requestAccessToken({ prompt: "select_account" });
+      } catch (e) { setAuthError("Google error: " + e.message); }
+    };
+
+    const validate = () => {
+      if (!email.trim() || !email.includes("@") || !email.includes(".")) return "Please enter a valid email.";
+      if (!password) return "Password is required.";
+      if (tab === "signup") {
+        if (!name.trim()) return "Please enter your name.";
+        if (password.length < 6) return "Password must be at least 6 characters.";
+        if (password !== confirm) return "Passwords do not match.";
+      }
+      return null;
+    };
+
+    const handleSubmit = () => {
+      const err = validate(); if (err) { setAuthError(err); return; }
+      setAuthError("");
+      const key = email.toLowerCase().trim();
+      if (tab === "signup") {
+        if (registeredUsers.has(key)) { setAuthError("Account already exists. Please log in."); return; }
+        setSubmitting(true);
+        setTimeout(() => {
+          registeredUsers.set(key, { name: name.trim(), password });
+          setSubmitting(false); onAuth({ name: name.trim(), email: key, provider: "email" });
+        }, 900);
+      } else {
+        if (!registeredUsers.has(key)) { setAuthError("No account found. Please sign up first."); return; }
+        const stored = registeredUsers.get(key);
+        if (stored.password !== password) { setAuthError("Incorrect password."); return; }
+        setSubmitting(true);
+        setTimeout(() => { setSubmitting(false); onAuth({ name: stored.name, email: key, provider: "email" }); }, 700);
+      }
+    };
+
+    const switchTab = (t) => { setTab(t); setAuthError(""); setName(""); setEmail(""); setPassword(""); setConfirm(""); };
+
+    return (
+      <div className="auth-root">
+        <div className="auth-hero">
+          <div className="auth-hero-content">
+            <div className="auth-hero-icon">🔥</div>
+            <div className="auth-hero-title">Pro<em>Cals</em></div>
+            <div className="auth-hero-sub">AI-powered calorie tracking. Snap a photo, get instant nutrition insights.</div>
+            <div className="auth-hero-features">
+              {[["📸","Instant AI meal analysis"],["📊","Full macro breakdowns"],["🎯","Custom daily goals"],["⚡","Real-time tracking"]].map(([icon,text]) => (
+                <div key={text} className="auth-hero-feature"><div className="auth-hero-feat-icon">{icon}</div>{text}</div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="auth-panel">
+          <div className="auth-panel-inner">
+            <div className="auth-mobile-logo"><span className="auth-mobile-logo-icon">🔥</span><div className="auth-mobile-logo-text">Pro<em>Cals</em></div></div>
+            <div className="auth-heading">{tab === "signup" ? "Create your account" : "Welcome back"}</div>
+            <div className="auth-subheading">{tab === "signup" ? "Start tracking smarter today." : "Sign in to continue."}</div>
+            <div className="auth-tabs">
+              <button className={`auth-tab ${tab==="signup"?"active":""}`} onClick={() => switchTab("signup")}>Sign Up</button>
+              <button className={`auth-tab ${tab==="login"?"active":""}`} onClick={() => switchTab("login")}>Log In</button>
+            </div>
+            <button className="auth-google-btn" onClick={handleGoogle} disabled={!gsiLoaded}>
+              <svg viewBox="0 0 24 24" width="20" height="20" style={{flexShrink:0}}>
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              {gsiLoaded ? `${tab==="signup"?"Sign up":"Sign in"} with Google` : "Loading Google…"}
+            </button>
+            <div className="auth-divider"><div className="auth-divider-line"/><div className="auth-divider-text">or with email</div><div className="auth-divider-line"/></div>
+            {authError && <div className="auth-error">⚠️ {authError}</div>}
+            {tab === "signup" && <div className="auth-field"><label className="auth-label">Full Name</label><input className="auth-input" type="text" placeholder="Jane Smith" value={name} onChange={e=>setName(e.target.value)} /></div>}
+            <div className="auth-field"><label className="auth-label">Email</label><input className="auth-input" type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} /></div>
+            <div className="auth-field"><label className="auth-label">Password</label><input className="auth-input" type="password" placeholder={tab==="signup"?"Min. 6 characters":"Your password"} value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} /></div>
+            {tab === "signup" && <div className="auth-field"><label className="auth-label">Confirm Password</label><input className={`auth-input ${authError.includes("match")?"err":""}`} type="password" placeholder="Repeat password" value={confirm} onChange={e=>setConfirm(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} /></div>}
+            {tab === "login" && <div className="auth-forgot" onClick={() => alert("Password reset requires a backend (Firebase/Supabase).")}>Forgot password?</div>}
+            <button className={`auth-submit-btn ${submitting?"loading":""}`} onClick={handleSubmit} disabled={submitting}>
+              {submitting ? (tab==="signup"?"Creating account…":"Signing in…") : (tab==="signup"?"Create Account":"Sign In")}
+            </button>
+            <div className="auth-footer">
+              {tab === "signup" ? <><a onClick={()=>switchTab("login")}>Already have an account? Log in</a><br/>By signing up you agree to our <a>Terms</a> &amp; <a>Privacy Policy</a>.</> : <a onClick={()=>switchTab("signup")}>Don't have an account? Sign up free</a>}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function ProCals() {
+    const [user, setUser] = useState(null);
+    const [image, setImage] = useState(null); const [imageBase64, setImageBase64] = useState(null);
+    const [loading, setLoading] = useState(false); const [result, setResult] = useState(null); const [error, setError] = useState(null);
+    const [log, setLog] = useState([]); const [goal, setGoal] = useState(DAILY_GOAL); const [goalInput, setGoalInput] = useState(String(DAILY_GOAL));
+    const [isPremium, setIsPremium] = useState(false); const [showPaywall, setShowPaywall] = useState(false); const [uploadsToday, setUploadsToday] = useState(0);
+    const fileInputRef = useRef(null); const cameraInputRef = useRef(null);
+    const atLimit = !isPremium && uploadsToday >= FREE_LIMIT;
+
+    if (!user) return <><AuthScreen onAuth={setUser} /><DarkToggle /></>;
+
+    const today = new Date().toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric" });
+    const totals = log.reduce((a,i) => ({calories:a.calories+i.calories,protein:a.protein+i.protein,carbs:a.carbs+i.carbs,fat:a.fat+i.fat}), {calories:0,protein:0,carbs:0,fat:0});
+    const progressPct = Math.min((totals.calories/goal)*100,100);
+    const overGoal = totals.calories > goal;
+    const R=42, C=2*Math.PI*R, dash=(progressPct/100)*C;
+
+    const handleFile = (file) => {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => { setImage(e.target.result); setImageBase64(e.target.result.split(",")[1]); setResult(null); setError(null); };
+      reader.readAsDataURL(file);
+    };
+
+    const analyze = async () => {
+      if (!imageBase64) return;
+      setLoading(true); setError(null); setResult(null);
+      try {
+        const resp = await fetch("https://api.anthropic.com/v1/messages", {
+          method:"POST", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1000,
+            messages:[{role:"user",content:[
+              {type:"image",source:{type:"base64",media_type:"image/jpeg",data:imageBase64}},
+              {type:"text",text:`Analyze this food image. Return ONLY valid JSON:\n{"name":"food name","calories":number,"protein":number,"carbs":number,"fat":number,"notes":"brief note"}`}
+            ]}]
+          }),
+        });
+        const data = await resp.json();
+        if (data.error) throw new Error(data.error.message);
+        const text = data.content.map(b=>b.text||"").join("").replace(/```json|```/g,"").trim();
+        setResult({...JSON.parse(text),imageUrl:image});
+      } catch(err) { setError(err.message||"Failed to analyze image."); }
+      finally { setLoading(false); }
+    };
+
+    const addToLog = () => {
+      if (!result) return;
+      setLog(prev=>[{...result,id:Date.now(),time:new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})},...prev]);
+      setUploadsToday(n=>n+1); setResult(null); setImage(null); setImageBase64(null);
+    };
+
+    return (
+      <>
+        <div className="app-shell">
+          <header className="topbar">
+            <div className="topbar-logo"><div className="topbar-logo-icon">🔥</div><div className="topbar-logo-text">Pro<em>Cals</em></div></div>
+            <div className="topbar-spacer"/>
+            <div className="topbar-right">
+              <div className="topbar-date">{today}</div>
+              {isPremium && <div className="premium-badge">⭐ Premium</div>}
+              <div className="user-pill" onClick={() => { if(window.confirm("Sign out?")) setUser(null); }} title="Click to sign out">
+                <div className="user-avatar">{user.picture ? <img src={user.picture} alt=""/> : user.name.charAt(0).toUpperCase()}</div>
+                <div className="user-name">{user.name.split(" ")[0]}</div>
+              </div>
+              <button className="reset-btn" onClick={() => { setLog([]); setUploadsToday(0); }}>Reset Day</button>
+            </div>
+          </header>
+
+          <div className="app-body">
+            <aside className="sidebar">
+              <div className="ring-section">
+                <div className="ring-wrap">
+                  <svg width="100" height="100" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r={R} fill="none" stroke="var(--border)" strokeWidth="9"/>
+                    <circle cx="50" cy="50" r={R} fill="none" stroke={overGoal?"var(--red)":"var(--accent)"} strokeWidth="9" strokeLinecap="round" strokeDasharray={`${dash} ${C}`} style={{transition:"stroke-dasharray 0.6s"}}/>
+                  </svg>
+                  <div className="ring-center"><div className="ring-num">{Math.round(progressPct)}%</div><div className="ring-sub">of goal</div></div>
+                </div>
+                <div className="cal-info">
+                  <div className="cal-info-label">Calories Today</div>
+                  <div className="cal-info-num">{totals.calories}<span> kcal</span></div>
+                  <div className={`cal-badge ${overGoal?"over":""}`}>{overGoal?`⚠ ${totals.calories-goal} over`:`${goal-totals.calories} left`}</div>
+                </div>
+              </div>
+
+              <div className="macro-grid">
+                {[{l:"Protein",v:totals.protein,c:"protein"},{l:"Carbs",v:totals.carbs,c:"carbs"},{l:"Fat",v:totals.fat,c:"fat"}].map(({l,v,c}) => (
+                  <div key={l} className={`macro-card ${c}`}><div className="macro-val">{v}<span>g</span></div><div className="macro-lbl">{l}</div></div>
+                ))}
+              </div>
+
+              <div className="goal-row">
+                <div className="goal-lbl">Daily Goal</div>
+                <input type="number" className="goal-input" value={goalInput}
+                  onChange={e => { const r=e.target.value.replace(/^0+(?=\d)/,""); setGoalInput(r); const n=parseInt(r,10); if(!isNaN(n)&&n>=500&&n<=10000) setGoal(n); }}
+                  onBlur={() => { const n=parseInt(goalInput,10); if(isNaN(n)||n<500){setGoalInput("500");setGoal(500);}else if(n>10000){setGoalInput("10000");setGoal(10000);}else setGoalInput(String(n)); }}
+                  min={500} max={10000}/>
+                <div className="goal-kcal-lbl">kcal</div>
+              </div>
+
+              <div>
+                <div className="log-panel-header"><div className="log-panel-title">Today's Log</div><div className="log-count-badge">{log.length} items</div></div>
+                {log.length === 0 ? <div className="log-empty">No meals logged yet.<br/>Analyze a photo to get started!</div>
+                  : log.map(item => (
+                    <div key={item.id} className="log-item">
+                      {item.imageUrl && <img className="log-thumb" src={item.imageUrl} alt={item.name}/>}
+                      <div className="log-info"><div className="log-name">{item.name}</div><div className="log-macros"><span className="kcal">{item.calories} kcal</span><span>{item.protein}g P</span><span>{item.carbs}g C</span><span>{item.fat}g F</span></div></div>
+                      <div className="log-meta"><div className="log-time">{item.time}</div><button className="log-delete" onClick={()=>setLog(p=>p.filter(i=>i.id!==item.id))}>×</button></div>
+                    </div>
+                  ))}
+              </div>
+            </aside>
+
+            <main className="main-panel">
+              <div className="upload-card">
+                <div className={`capture-zone ${image?"has-image":""}`} onClick={()=>!image&&!atLimit&&fileInputRef.current?.click()} style={atLimit?{cursor:"default",opacity:0.6}:{}}>
+                  {image ? <><img src={image} alt="Food"/><div className="capture-overlay"><span style={{fontSize:28}}>📷</span><span>Change Photo</span></div></>
+                    : <div className="upload-empty"><div className="upload-icon-wrap">{atLimit?"🔒":"🍽️"}</div><div className="upload-text">{atLimit?"Daily limit reached":"Upload a food photo"}</div><div className="upload-sub">{atLimit?"Upgrade for unlimited scans":"Click here or use the buttons below"}</div></div>}
+                </div>
+                {!isPremium && <div className="upload-counter"><div className="counter-dots">{[0,1,2].map(i=><div key={i} className={`counter-dot ${i<uploadsToday?"used":""}`}/>)}</div><div className="counter-label"><strong>{uploadsToday}/3</strong> free scans today</div></div>}
+                <div className="card-actions">
+                  <button className="action-btn" onClick={()=>!atLimit&&cameraInputRef.current?.click()} style={atLimit?{opacity:0.4,cursor:"not-allowed"}:{}}>📸 Camera</button>
+                  <button className="action-btn" onClick={()=>!atLimit&&fileInputRef.current?.click()} style={atLimit?{opacity:0.4,cursor:"not-allowed"}:{}}>🖼️ Gallery</button>
+                </div>
+              </div>
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={e=>handleFile(e.target.files[0])}/>
+              <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={e=>handleFile(e.target.files[0])}/>
+
+              {atLimit && <div className="limit-banner"><div className="limit-icon">🔒</div><div className="limit-text"><div className="limit-title">You've used all 3 free scans</div><div className="limit-sub">Upgrade to Premium for unlimited daily scans</div></div><button className="upgrade-btn-inline" onClick={()=>setShowPaywall(true)}>Upgrade</button></div>}
+
+              <button className={`analyze-btn ${loading?"loading":""}`} onClick={atLimit?()=>setShowPaywall(true):analyze} disabled={(!image||loading)&&!atLimit} style={atLimit?{background:"#1a1714",boxShadow:"none"}:{}}>
+                {atLimit?"🔒 Unlock Unlimited Scans":loading?"✦ Analyzing your meal…":"✦ Analyze Meal"}
+              </button>
+
+              {error && <div className="error-msg">⚠️ {error}</div>}
+
+              {result && (
+                <div className="result-card">
+                  <div className="result-hero"><div className="result-name">{result.name}</div><div className="result-cals-block"><div className="result-cals">{result.calories}</div><div className="result-cals-label">kcal</div></div></div>
+                  <div className="result-macros">{[{l:"Protein",v:result.protein},{l:"Carbs",v:result.carbs},{l:"Fat",v:result.fat}].map(({l,v})=><div key={l} className="result-macro"><div className="result-macro-val">{v}<span>g</span></div><div className="result-macro-label">{l}</div></div>)}</div>
+                  {result.notes && <div className="result-notes">💡 {result.notes}</div>}
+                  <button className="add-log-btn" onClick={addToLog}>+ Add to Today's Log</button>
+                </div>
+              )}
+            </main>
+          </div>
+        </div>
+
+        {showPaywall && (
+          <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setShowPaywall(false)}>
+            <div className="modal">
+              <div className="modal-handle"/>
+              <div className="modal-badge">⭐ ProCals Premium</div>
+              <div className="modal-title">Eat smarter,<br/>track everything.</div>
+              <div className="modal-sub">Upgrade for unlimited AI meal scans every day.</div>
+              <div className="modal-features">
+                {[["Unlimited daily meal scans","📸"],["Full macro & calorie breakdowns","📊"],["AI-powered food recognition","🤖"],["Priority analysis speed","⚡"]].map(([t,i])=><div key={t} className="modal-feature"><div className="feature-check">{i}</div>{t}</div>)}
+              </div>
+              <div className="modal-price"><div className="price-amount">$12.99</div><div className="price-period">per month · cancel anytime</div></div>
+              <button className="modal-cta" onClick={()=>{setIsPremium(true);setShowPaywall(false);}}>Start Premium — $12.99/mo</button>
+              <button className="modal-dismiss" onClick={()=>setShowPaywall(false)}>Maybe later</button>
+            </div>
+          </div>
+        )}
+        <DarkToggle/>
+      </>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById("root")).render(<ProCals/>);
+</script>
+</body>
+</html>
